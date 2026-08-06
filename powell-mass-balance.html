@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Powell Mass-Balance</title>
+<style>
+  :root {
+    --bg: 210 20% 98%;
+    --surface: 0 0% 100%;
+    --surface-2: 210 20% 96%;
+    --border: 210 16% 87%;
+    --text: 215 25% 15%;
+    --text-muted: 215 12% 45%;
+    --accent: 189 65% 34%;
+    --accent-soft: 189 55% 92%;
+    --warn: 28 85% 45%;
+    --warn-soft: 28 90% 94%;
+    --danger: 4 72% 48%;
+    --danger-soft: 4 80% 95%;
+    --good: 152 45% 34%;
+    --good-soft: 152 45% 93%;
+    --radius: 10px;
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+  }
+  .dark {
+    --bg: 215 28% 10%;
+    --surface: 215 26% 14%;
+    --surface-2: 215 24% 18%;
+    --border: 215 18% 24%;
+    --text: 210 20% 92%;
+    --text-muted: 215 12% 62%;
+    --accent: 189 60% 55%;
+    --accent-soft: 189 40% 20%;
+    --warn: 28 80% 60%;
+    --warn-soft: 28 50% 20%;
+    --danger: 4 70% 62%;
+    --danger-soft: 4 45% 20%;
+    --good: 152 40% 55%;
+    --good-soft: 152 35% 18%;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: var(--font-body);
+    background: hsl(var(--bg));
+    color: hsl(var(--text));
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 24px 20px 64px; }
+  header.top {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 4px 0 20px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand svg { width: 30px; height: 30px; color: hsl(var(--accent)); flex-shrink: 0; }
+  .brand h1 { font-size: 1.15rem; margin: 0; font-weight: 700; letter-spacing: -0.01em; }
+  .brand p { margin: 0; font-size: 0.75rem; color: hsl(var(--text-muted)); }
+  #darkToggle {
+    border: 1px solid hsl(var(--border)); background: hsl(var(--surface));
+    color: hsl(var(--text)); border-radius: 8px; width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  #darkToggle svg { width: 17px; height: 17px; }
+  .card {
+    background: hsl(var(--surface));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    margin-bottom: 20px;
+  }
+  .card h2 { font-size: 1rem; margin: 0 0 4px; font-weight: 700; }
+  .card .sub { font-size: 0.8rem; color: hsl(var(--text-muted)); margin: 0 0 18px; }
+  .equation {
+    font-family: var(--font-mono); font-size: 0.85rem; background: hsl(var(--surface-2));
+    border-radius: 8px; padding: 10px 14px; margin-bottom: 18px; color: hsl(var(--text));
+    border: 1px solid hsl(var(--border));
+  }
+  .solvefor { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .solvefor label {
+    border: 1px solid hsl(var(--border)); border-radius: 20px; padding: 6px 14px;
+    font-size: 0.78rem; cursor: pointer; user-select: none; color: hsl(var(--text-muted));
+    background: hsl(var(--surface-2));
+  }
+  .solvefor input { display: none; }
+  .solvefor input:checked + span { color: hsl(var(--accent)); font-weight: 700; }
+  .solvefor label:has(input:checked) {
+    border-color: hsl(var(--accent)); background: hsl(var(--accent-soft));
+  }
+  .grid4 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 18px; }
+  @media (max-width: 720px) { .grid4 { grid-template-columns: 1fr; } }
+  .field {
+    border: 1px solid hsl(var(--border)); border-radius: 9px; padding: 14px 16px;
+    background: hsl(var(--surface-2));
+  }
+  .field.is-solved { border-color: hsl(var(--accent)); background: hsl(var(--accent-soft)); }
+  .field-title {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .field-title span.name { font-size: 0.82rem; font-weight: 700; }
+  .badge {
+    font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.04em;
+    font-weight: 700; padding: 2px 7px; border-radius: 10px;
+    background: hsl(var(--accent)); color: hsl(0 0% 100%);
+  }
+  .dual-input { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .input-unit { position: relative; }
+  .input-unit input {
+    width: 100%; font-family: var(--font-mono); font-size: 0.88rem;
+    padding: 8px 10px; border-radius: 6px; border: 1px solid hsl(var(--border));
+    background: hsl(var(--surface)); color: hsl(var(--text));
+  }
+  .input-unit input:disabled { opacity: 0.6; background: hsl(var(--surface-2)); }
+  .input-unit label {
+    display: block; font-size: 0.65rem; color: hsl(var(--text-muted));
+    margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.03em;
+  }
+  .field-derived {
+    margin-top: 10px; font-size: 0.72rem; color: hsl(var(--text-muted));
+    font-family: var(--font-mono);
+  }
+  .field-derived b { color: hsl(var(--text)); }
+  .single-field { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .avg-note {
+    font-size: 0.68rem; color: hsl(var(--text-muted)); margin-top: 8px;
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  }
+  .avg-note input {
+    width: 62px; font-family: var(--font-mono); font-size: 0.72rem;
+    padding: 3px 6px; border-radius: 5px; border: 1px solid hsl(var(--border));
+    background: hsl(var(--surface)); color: hsl(var(--text));
+  }
+  .evap-row {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    border: 1px solid hsl(var(--border)); border-radius: 9px; padding: 14px 16px;
+    background: hsl(var(--surface-2));
+  }
+  .evap-row .name { font-size: 0.82rem; font-weight: 700; }
+  .evap-row input {
+    width: 110px; font-family: var(--font-mono); font-size: 0.88rem;
+    padding: 8px 10px; border-radius: 6px; border: 1px solid hsl(var(--border));
+    background: hsl(var(--surface)); color: hsl(var(--text));
+  }
+  .evap-row .unit { font-size: 0.75rem; color: hsl(var(--text-muted)); }
+  .evap-row .note { font-size: 0.7rem; color: hsl(var(--text-muted)); flex: 1 1 100%; }
+
+  .results {
+    margin-top: 20px; padding-top: 18px; border-top: 1px solid hsl(var(--border));
+  }
+  .result-hero {
+    display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 14px;
+  }
+  .result-hero .label { font-size: 0.78rem; color: hsl(var(--text-muted)); }
+  .result-hero .value { font-family: var(--font-mono); font-size: 1.5rem; font-weight: 700; color: hsl(var(--accent)); }
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  @media (max-width: 720px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+  .stat {
+    background: hsl(var(--surface-2)); border: 1px solid hsl(var(--border));
+    border-radius: 8px; padding: 10px 12px;
+  }
+  .stat .k { font-size: 0.65rem; text-transform: uppercase; color: hsl(var(--text-muted)); letter-spacing: 0.03em; }
+  .stat .v { font-family: var(--font-mono); font-size: 0.95rem; font-weight: 700; margin-top: 2px; }
+  .flags { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .flag {
+    font-size: 0.72rem; font-weight: 600; padding: 5px 10px; border-radius: 6px;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .flag.warn { background: hsl(var(--warn-soft)); color: hsl(var(--warn)); }
+  .flag.danger { background: hsl(var(--danger-soft)); color: hsl(var(--danger)); }
+  .flag.good { background: hsl(var(--good-soft)); color: hsl(var(--good)); }
+
+  .table-toolbar {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    margin-bottom: 14px; flex-wrap: wrap;
+  }
+  .toggle-pair {
+    display: inline-flex; border: 1px solid hsl(var(--border)); border-radius: 20px;
+    overflow: hidden; font-size: 0.75rem;
+  }
+  .toggle-pair button {
+    border: none; background: hsl(var(--surface-2)); color: hsl(var(--text-muted));
+    padding: 6px 14px; cursor: pointer; font-family: var(--font-body);
+  }
+  .toggle-pair button.active { background: hsl(var(--accent)); color: white; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  thead th {
+    text-align: left; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.03em;
+    color: hsl(var(--text-muted)); padding: 6px 10px; border-bottom: 1px solid hsl(var(--border));
+  }
+  tbody td { padding: 6px 10px; font-family: var(--font-mono); border-bottom: 1px solid hsl(var(--border)); }
+  tbody tr.hi-above { background: hsl(var(--good-soft)); }
+  tbody tr.hi-below { background: hsl(var(--danger-soft)); }
+  .table-scroll { max-height: 360px; overflow-y: auto; border: 1px solid hsl(var(--border)); border-radius: 8px; }
+  .placeholder-note {
+    font-size: 0.75rem; color: hsl(var(--text-muted)); background: hsl(var(--surface-2));
+    border: 1px dashed hsl(var(--border)); border-radius: 8px; padding: 10px 12px; margin-bottom: 14px;
+  }
+  footer.methodology { font-size: 0.8rem; color: hsl(var(--text-muted)); }
+  footer.methodology h2 { color: hsl(var(--text)); }
+  footer.methodology ul { padding-left: 18px; margin: 8px 0; }
+  footer.methodology li { margin-bottom: 6px; }
+  footer.methodology a { color: hsl(var(--accent)); text-decoration: none; }
+  footer.methodology a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Powell Mass-Balance logo">
+        <path d="M4 22c3-3 5-3 8 0s5 3 8 0 5-3 8 0" />
+        <path d="M4 27c3-3 5-3 8 0s5 3 8 0 5-3 8 0" />
+        <path d="M16 4l6 12H10z" fill="currentColor" stroke="none" />
+      </svg>
+      <div>
+        <h1>Powell Mass-Balance</h1>
+        <p>Water-year elevation &amp; storage estimator</p>
+      </div>
+    </div>
+    <button id="darkToggle" aria-label="Toggle dark mode" title="Toggle dark mode"></button>
+  </header>
+
+  <div id="dataStatus" class="placeholder-note" style="display:none; margin-bottom: 20px;"></div>
+
+  <section class="card">
+    <h2>Water-Year Mass Balance</h2>
+    <p class="sub">Solve for any one of the four terms below, given the other three plus evaporation.</p>
+    <div class="equation">End-of-WY Storage = Start-of-WY Storage + WY Inflow − WY Release − WY Evaporation</div>
+
+    <div class="solvefor" id="solveForGroup">
+      <label><input type="radio" name="solvefor" value="start"><span>Solve for Starting Storage</span></label>
+      <label><input type="radio" name="solvefor" value="inflow"><span>Solve for WY Inflow</span></label>
+      <label><input type="radio" name="solvefor" value="release"><span>Solve for WY Release</span></label>
+      <label><input type="radio" name="solvefor" value="end" checked><span>Solve for Ending Storage</span></label>
+    </div>
+
+    <div class="grid4">
+      <div class="field" id="field-start">
+        <div class="field-title"><span class="name">Starting Conditions (Oct 1)</span><span class="badge" style="display:none">Computed</span></div>
+        <div class="dual-input">
+          <div class="input-unit"><label>Elevation (ft)</label><input type="number" id="startElev" step="0.01" value="3523.84"></div>
+          <div class="input-unit"><label>Storage (AF)</label><input type="number" id="startStorage" step="1" value="5478000"></div>
+        </div>
+        <div class="field-derived">Area: <b id="startArea">—</b> acres &nbsp;·&nbsp; <b id="startPct">—</b>% of live capacity</div>
+      </div>
+
+      <div class="field" id="field-inflow">
+        <div class="field-title"><span class="name">WY Inflow</span><span class="badge" style="display:none">Computed</span></div>
+        <div class="dual-input">
+          <div class="input-unit"><label>Inflow (MAF)</label><input type="number" id="inflowMaf" step="0.01" value="9.6"></div>
+          <div class="input-unit"><label>% of Average</label><input type="number" id="inflowPct" step="0.1" value="100"></div>
+        </div>
+        <div class="avg-note">Assumed historical average: <input type="number" id="avgInflow" step="0.1" value="9.6"> MAF/yr — editable</div>
+      </div>
+
+      <div class="field" id="field-release">
+        <div class="field-title"><span class="name">WY Release</span><span class="badge" style="display:none">Computed</span></div>
+        <div class="single-field">
+          <div class="input-unit"><label>Release (MAF)</label><input type="number" id="releaseMaf" step="0.01" value="7.48"></div>
+        </div>
+      </div>
+
+      <div class="field" id="field-end">
+        <div class="field-title"><span class="name">Ending Conditions (Sep 30)</span><span class="badge" style="display:none">Computed</span></div>
+        <div class="dual-input">
+          <div class="input-unit"><label>Elevation (ft)</label><input type="number" id="endElev" step="0.01" disabled></div>
+          <div class="input-unit"><label>Storage (AF)</label><input type="number" id="endStorage" step="1" disabled></div>
+        </div>
+        <div class="field-derived">Area: <b id="endArea">—</b> acres &nbsp;·&nbsp; <b id="endPct">—</b>% of live capacity</div>
+      </div>
+    </div>
+
+    <div class="evap-row">
+      <span class="name">WY Evaporation</span>
+      <input type="number" id="evapKaf" step="1" value="260">
+      <span class="unit">kAF/yr (thousand acre-feet)</span>
+      <span class="note">Always specified — default of 260 kAF/yr is a typical annual reservoir-evaporation volume at recent lake levels (based on ~48 in/yr net evaporation, <a href="https://glencanyon.org/wp-content/uploads/2024/11/JAWRA-Paper7.pdf" target="_blank" rel="noopener">Reclamation/CRSS assumption</a>). Edit as needed.</span>
+    </div>
+
+    <div class="results">
+      <div class="result-hero">
+        <span class="label" id="resultLabel">Ending Storage</span>
+        <span class="value" id="resultValue">—</span>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><div class="k">Δ Storage (WY)</div><div class="v" id="statDeltaStorage">—</div></div>
+        <div class="stat"><div class="k">Δ Elevation (WY)</div><div class="v" id="statDeltaElev">—</div></div>
+        <div class="stat"><div class="k">Ending Area</div><div class="v" id="statEndArea">—</div></div>
+        <div class="stat"><div class="k">Ending % Live Capacity</div><div class="v" id="statEndPct">—</div></div>
+      </div>
+      <div class="flags" id="flagsRow"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Historical Water-Year Inflow (2000–2026)</h2>
+    <p class="sub">Full water-year series, 2000–2026. Rows highlight relative to the WY Inflow value entered above. <span id="inflowMeta"></span></p>
+    <div class="table-toolbar">
+      <div class="toggle-pair" id="highlightToggle">
+        <button data-mode="above" class="active">Highlight above</button>
+        <button data-mode="below">Highlight below</button>
+        <button data-mode="none">No highlight</button>
+      </div>
+      <span style="font-size:0.75rem;color:hsl(var(--text-muted))">Comparing against current WY Inflow input</span>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Water Year</th><th>Inflow (MAF)</th><th>% of Average</th></tr></thead>
+        <tbody id="historyTbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer class="card methodology">
+    <h2>Methodology &amp; Sources</h2>
+    <ul>
+      <li><b>Elevation ↔ storage/area conversion</b> uses Reclamation's <a href="https://www.usbr.gov/uc/water/Lake_Powell_Area_Capacity_Table_Report_FINAL.pdf" target="_blank" rel="noopener">Lake Powell 2017 Area and Capacity Tables</a> (Bradley, 2022, Technical Memorandum ENV-2021-98, NGVD29). "Live capacity" / "% of live capacity" is total capacity minus capacity at dead pool (elev. 3,370 ft) — this matches how Reclamation reports storage in its <a href="https://www.usbr.gov/uc/water/rsvrs/ops/WeeklyHydrologySummary/Weekly_Hydro.pdf" target="_blank" rel="noopener">Weekly Hydrology Summary</a> and AOP reports (validated against multiple published elevation/storage pairs within &lt;0.1%).</li>
+      <li>Live capacity at full pool (elev. 3,700 ft) works out to ≈23.31 million AF, consistent with Reclamation's <a href="https://www.usbr.gov/lc/region/g4000/AOP2023/2023AOP_2022-08-02_Slides.pdf" target="_blank" rel="noopener">2023 AOP slides</a> figure of 23.314 MAF.</li>
+      <li>This is a <b>single water-year (Oct 1–Sep 30) mass balance</b>. It does not account for bank storage change, local/tributary inflow below Powell, or intra-year timing — only the four terms in the equation above.</li>
+      <li>Historical average inflow (9.6 MAF/yr, editable) and default evaporation (260 kAF/yr, editable) are user-specified planning assumptions, not fixed constants — adjust them for your scenario.</li>
+      <li>For current official conditions, see the <a href="https://www.usbr.gov/uc/water/hydrodata/reservoir_data/919/dashboard.html" target="_blank" rel="noopener">Lake Powell reservoir dashboard</a>.</li>
+    </ul>
+  </footer>
+
+</div>
+
+<script>
+/* ---------- Elevation / Area / Total-Capacity lookup table (1-ft increments, NGVD29) ---------- */
+/* Loaded at runtime from data/compact_table.json. Source: Reclamation "Lake Powell 2017 Area
+   and Capacity Tables" (Bradley, 2022). This table is static bathymetry data and should not
+   need to change, but keeping it in its own file makes it easy to swap in a future re-survey. */
+let TABLE = null;
+let elevs, areas, caps;
+let DEAD_POOL_CAP, LIVE_FULL_POOL_CAP;
+
+function interp(x, xs, ys) {
+  if (x <= xs[0]) return ys[0];
+  if (x >= xs[xs.length - 1]) return ys[ys.length - 1];
+  let lo = 0, hi = xs.length - 1;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (xs[mid] <= x) lo = mid; else hi = mid;
+  }
+  const t = (x - xs[lo]) / (xs[hi] - xs[lo]);
+  return ys[lo] + t * (ys[hi] - ys[lo]);
+}
+
+function elevToCap(elev) { return interp(elev, elevs, caps); }
+function elevToArea(elev) { return interp(elev, elevs, areas); }
+function capToElev(cap) { return interp(cap, caps, elevs); }
+
+const DEAD_POOL_ELEV = 3370.0;
+const MIN_POWER_POOL_ELEV = 3490.0;
+const FULL_POOL_ELEV = 3700.0;
+
+function totalCapToLive(totalCap) { return totalCap - DEAD_POOL_CAP; }
+function liveToTotalCap(liveAF) { return liveAF + DEAD_POOL_CAP; }
+
+function liveStorageToElev(liveAF) {
+  return capToElev(liveToTotalCap(liveAF));
+}
+function elevToLiveStorage(elev) {
+  return totalCapToLive(elevToCap(elev));
+}
+
+/* ---------- DOM refs ---------- */
+const $ = id => document.getElementById(id);
+const startElev = $('startElev'), startStorage = $('startStorage');
+const endElev = $('endElev'), endStorage = $('endStorage');
+const inflowMaf = $('inflowMaf'), inflowPct = $('inflowPct'), avgInflow = $('avgInflow');
+const releaseMaf = $('releaseMaf');
+const evapKaf = $('evapKaf');
+
+let solveFor = 'end';
+let editingLock = false; // prevent recursive update loops
+
+function fmtAF(af) {
+  if (af === null || !isFinite(af)) return '—';
+  return Math.round(af).toLocaleString();
+}
+function fmtMAF(af) {
+  if (af === null || !isFinite(af)) return '—';
+  return (af / 1e6).toFixed(3) + ' MAF';
+}
+function fmtElev(e) {
+  if (e === null || !isFinite(e)) return '—';
+  return e.toFixed(2) + ' ft';
+}
+function fmtAcres(a) {
+  if (a === null || !isFinite(a)) return '—';
+  return Math.round(a).toLocaleString();
+}
+function fmtPct(p) {
+  if (p === null || !isFinite(p)) return '—';
+  return p.toFixed(1);
+}
+
+/* ---------- Linked elevation/storage pair handling ---------- */
+function wireElevStoragePair(elevInput, storageInput) {
+  elevInput.addEventListener('input', () => {
+    if (editingLock) return;
+    editingLock = true;
+    const e = parseFloat(elevInput.value);
+    if (isFinite(e)) {
+      const live = elevToLiveStorage(e);
+      storageInput.value = Math.round(live);
+    }
+    editingLock = false;
+    recalc();
+  });
+  storageInput.addEventListener('input', () => {
+    if (editingLock) return;
+    editingLock = true;
+    const s = parseFloat(storageInput.value);
+    if (isFinite(s)) {
+      const e = liveStorageToElev(s);
+      elevInput.value = e.toFixed(2);
+    }
+    editingLock = false;
+    recalc();
+  });
+}
+wireElevStoragePair(startElev, startStorage);
+wireElevStoragePair(endElev, endStorage);
+
+/* ---------- Linked inflow MAF / %avg pair ---------- */
+inflowMaf.addEventListener('input', () => {
+  if (editingLock) return;
+  editingLock = true;
+  const maf = parseFloat(inflowMaf.value);
+  const avg = parseFloat(avgInflow.value) || 9.6;
+  if (isFinite(maf)) inflowPct.value = ((maf / avg) * 100).toFixed(1);
+  editingLock = false;
+  recalc();
+});
+inflowPct.addEventListener('input', () => {
+  if (editingLock) return;
+  editingLock = true;
+  const pct = parseFloat(inflowPct.value);
+  const avg = parseFloat(avgInflow.value) || 9.6;
+  if (isFinite(pct)) inflowMaf.value = ((pct / 100) * avg).toFixed(3);
+  editingLock = false;
+  recalc();
+});
+avgInflow.addEventListener('input', () => {
+  if (editingLock) return;
+  editingLock = true;
+  const avg = parseFloat(avgInflow.value) || 9.6;
+  const maf = parseFloat(inflowMaf.value);
+  if (isFinite(maf)) inflowPct.value = ((maf / avg) * 100).toFixed(1);
+  editingLock = false;
+  recalc();
+});
+
+releaseMaf.addEventListener('input', recalc);
+evapKaf.addEventListener('input', recalc);
+
+/* ---------- Solve-for radio ---------- */
+document.querySelectorAll('#solveForGroup input[name="solvefor"]').forEach(r => {
+  r.addEventListener('change', () => {
+    solveFor = r.value;
+    updateFieldStates();
+    recalc();
+  });
+});
+
+function updateFieldStates() {
+  const fields = {
+    start: { el: $('field-start'), inputs: [startElev, startStorage] },
+    inflow: { el: $('field-inflow'), inputs: [inflowMaf, inflowPct] },
+    release: { el: $('field-release'), inputs: [releaseMaf] },
+    end: { el: $('field-end'), inputs: [endElev, endStorage] },
+  };
+  Object.entries(fields).forEach(([key, f]) => {
+    const isSolved = key === solveFor;
+    f.el.classList.toggle('is-solved', isSolved);
+    f.el.querySelector('.badge').style.display = isSolved ? 'inline-block' : 'none';
+    f.inputs.forEach(inp => inp.disabled = isSolved);
+  });
+}
+
+/* ---------- Threshold flags ---------- */
+function thresholdFlags(elev, label) {
+  const flags = [];
+  if (!isFinite(elev)) return flags;
+  if (elev < DEAD_POOL_ELEV) flags.push({ cls: 'danger', text: `${label} below dead pool (3,370 ft)` });
+  else if (elev < MIN_POWER_POOL_ELEV) flags.push({ cls: 'warn', text: `${label} below min. power pool (3,490 ft)` });
+  if (elev > FULL_POOL_ELEV) flags.push({ cls: 'warn', text: `${label} above full pool (3,700 ft) — spill risk` });
+  return flags;
+}
+
+/* ---------- Core recalculation ---------- */
+function recalc() {
+  const evapAF = (parseFloat(evapKaf.value) || 0) * 1000;
+  let startAF = elevToLiveStorage(parseFloat(startElev.value));
+  let endAF = elevToLiveStorage(parseFloat(endElev.value));
+  let inflowAF = (parseFloat(inflowMaf.value) || 0) * 1e6;
+  let releaseAF = (parseFloat(releaseMaf.value) || 0) * 1e6;
+
+  if (solveFor === 'end') {
+    endAF = startAF + inflowAF - releaseAF - evapAF;
+  } else if (solveFor === 'start') {
+    startAF = endAF - inflowAF + releaseAF + evapAF;
+  } else if (solveFor === 'inflow') {
+    inflowAF = endAF - startAF + releaseAF + evapAF;
+  } else if (solveFor === 'release') {
+    releaseAF = startAF + inflowAF - evapAF - endAF;
+  }
+
+  editingLock = true;
+  if (solveFor === 'end') {
+    const e = liveStorageToElev(endAF);
+    endElev.value = e.toFixed(2);
+    endStorage.value = Math.round(endAF);
+  } else if (solveFor === 'start') {
+    const e = liveStorageToElev(startAF);
+    startElev.value = e.toFixed(2);
+    startStorage.value = Math.round(startAF);
+  } else if (solveFor === 'inflow') {
+    const avg = parseFloat(avgInflow.value) || 9.6;
+    inflowMaf.value = (inflowAF / 1e6).toFixed(3);
+    inflowPct.value = ((inflowAF / 1e6 / avg) * 100).toFixed(1);
+  } else if (solveFor === 'release') {
+    releaseMaf.value = (releaseAF / 1e6).toFixed(3);
+  }
+  editingLock = false;
+
+  // derived info for start/end regardless of which is solved
+  const startElevVal = parseFloat(startElev.value);
+  const endElevVal = parseFloat(endElev.value);
+  $('startArea').textContent = fmtAcres(elevToArea(startElevVal));
+  $('startPct').textContent = fmtPct((startAF / LIVE_FULL_POOL_CAP) * 100);
+  $('endArea').textContent = fmtAcres(elevToArea(endElevVal));
+  $('endPct').textContent = fmtPct((endAF / LIVE_FULL_POOL_CAP) * 100);
+
+  // hero result
+  const labelMap = { end: 'Ending Storage', start: 'Starting Storage', inflow: 'WY Inflow', release: 'WY Release' };
+  $('resultLabel').textContent = labelMap[solveFor];
+  let valueText = '—';
+  if (solveFor === 'end') valueText = `${fmtAF(endAF)} AF (${fmtMAF(endAF)}) · ${fmtElev(endElevVal)}`;
+  else if (solveFor === 'start') valueText = `${fmtAF(startAF)} AF (${fmtMAF(startAF)}) · ${fmtElev(startElevVal)}`;
+  else if (solveFor === 'inflow') valueText = `${(inflowAF / 1e6).toFixed(3)} MAF`;
+  else if (solveFor === 'release') valueText = `${(releaseAF / 1e6).toFixed(3)} MAF`;
+  $('resultValue').textContent = valueText;
+
+  // stat grid
+  $('statDeltaStorage').textContent = fmtMAF(endAF - startAF);
+  $('statDeltaElev').textContent = (isFinite(endElevVal) && isFinite(startElevVal)) ? (endElevVal - startElevVal).toFixed(2) + ' ft' : '—';
+  $('statEndArea').textContent = fmtAcres(elevToArea(endElevVal)) + ' ac';
+  $('statEndPct').textContent = fmtPct((endAF / LIVE_FULL_POOL_CAP) * 100) + '%';
+
+  // flags
+  const flags = [
+    ...thresholdFlags(startElevVal, 'Start'),
+    ...thresholdFlags(endElevVal, 'End'),
+  ];
+  if (releaseAF < 0) flags.push({ cls: 'warn', text: 'Computed WY Release is negative — check inputs' });
+  if (inflowAF < 0) flags.push({ cls: 'warn', text: 'Computed WY Inflow is negative — check inputs' });
+  const flagsRow = $('flagsRow');
+  flagsRow.innerHTML = '';
+  if (flags.length === 0) {
+    flagsRow.innerHTML = '<span class="flag good">Within normal operating range</span>';
+  } else {
+    flags.forEach(f => {
+      const span = document.createElement('span');
+      span.className = 'flag ' + f.cls;
+      span.textContent = f.text;
+      flagsRow.appendChild(span);
+    });
+  }
+
+  refreshHistoryHighlight();
+}
+
+/* ---------- Dark mode ---------- */
+const darkToggle = $('darkToggle');
+function sunIcon() {
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+}
+function moonIcon() {
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+}
+function setDark(on) {
+  document.documentElement.classList.toggle('dark', on);
+  darkToggle.innerHTML = on ? sunIcon() : moonIcon();
+}
+setDark(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+darkToggle.addEventListener('click', () => setDark(!document.documentElement.classList.contains('dark')));
+
+/* ---------- Historical inflow table ---------- */
+// Loaded at runtime from data/historical_inflow.json so it can be updated by hand or by a script
+// (see .github/workflows/update-inflow.yml) without touching this file.
+let historicalInflow = [];
+
+function buildHistoricalInflow(yearsAF, startYear, endYear) {
+  const rows = [];
+  for (let wy = startYear; wy <= endYear; wy++) {
+    const af = yearsAF[String(wy)];
+    rows.push({ wy, maf: af === undefined ? null : af / 1e6 });
+  }
+  return rows;
+}
+
+function renderHistoryTable() {
+  const tbody = $('historyTbody');
+  tbody.innerHTML = '';
+  const avg = parseFloat(avgInflow.value) || 9.6;
+  historicalInflow.forEach(row => {
+    const tr = document.createElement('tr');
+    tr.dataset.maf = row.maf === null ? '' : row.maf;
+    const pct = row.maf === null ? null : (row.maf / avg) * 100;
+    tr.innerHTML = `<td>${row.wy}</td><td>${row.maf === null ? '—' : row.maf.toFixed(2)}</td><td>${pct === null ? '—' : pct.toFixed(0) + '%'}</td>`;
+    tbody.appendChild(tr);
+  });
+  refreshHistoryHighlight();
+}
+
+let highlightMode = 'above';
+document.querySelectorAll('#highlightToggle button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#highlightToggle button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    highlightMode = btn.dataset.mode;
+    refreshHistoryHighlight();
+  });
+});
+
+function refreshHistoryHighlight() {
+  const current = parseFloat(inflowMaf.value);
+  document.querySelectorAll('#historyTbody tr').forEach(tr => {
+    tr.classList.remove('hi-above', 'hi-below');
+    const mafStr = tr.dataset.maf;
+    if (!mafStr || !isFinite(current)) return;
+    const maf = parseFloat(mafStr);
+    if (highlightMode === 'above' && maf > current) tr.classList.add('hi-above');
+    if (highlightMode === 'below' && maf < current) tr.classList.add('hi-below');
+  });
+}
+
+/* ---------- Init: load data files, then start the app ---------- */
+const dataStatus = document.getElementById('dataStatus');
+
+async function fetchJSON(path) {
+  const res = await fetch(path, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`${path}: HTTP ${res.status}`);
+  return res.json();
+}
+
+async function init() {
+  try {
+    const [table, inflow, defaults] = await Promise.all([
+      fetchJSON('./data/compact_table.json'),
+      fetchJSON('./data/historical_inflow.json'),
+      fetchJSON('./data/defaults.json').catch(() => null), // optional file
+    ]);
+
+    TABLE = table;
+    elevs = TABLE.map(r => r[0]);
+    areas = TABLE.map(r => r[1]);
+    caps = TABLE.map(r => r[2]);
+    DEAD_POOL_CAP = elevToCap(DEAD_POOL_ELEV);
+    LIVE_FULL_POOL_CAP = elevToCap(FULL_POOL_ELEV) - DEAD_POOL_CAP;
+
+    const years = Object.keys(inflow.years).map(Number);
+    historicalInflow = buildHistoricalInflow(inflow.years, Math.min(...years), Math.max(...years));
+    const inflowMeta = document.getElementById('inflowMeta');
+    if (inflowMeta) {
+      const updated = inflow.last_updated ? `Data last updated ${inflow.last_updated}.` : '';
+      const src = inflow.source ? ` <a href="${inflow.source}" target="_blank" rel="noopener">Source</a>.` : '';
+      inflowMeta.innerHTML = updated + src;
+    }
+
+    if (defaults) {
+      if (defaults.startElevationFt != null) startElev.value = defaults.startElevationFt;
+      if (defaults.avgInflowMaf != null) avgInflow.value = defaults.avgInflowMaf;
+      if (defaults.releaseMaf != null) releaseMaf.value = defaults.releaseMaf;
+      if (defaults.evapKafPerYear != null) evapKaf.value = defaults.evapKafPerYear;
+    }
+
+    // Sync the storage fields from the elevation fields so displayed values are internally consistent on load.
+    startStorage.value = Math.round(elevToLiveStorage(parseFloat(startElev.value)));
+    inflowMaf.value = avgInflow.value;
+    inflowPct.value = '100';
+
+    if (dataStatus) dataStatus.style.display = 'none';
+    updateFieldStates();
+    renderHistoryTable();
+    recalc();
+  } catch (err) {
+    console.error('Failed to load calculator data:', err);
+    if (dataStatus) {
+      dataStatus.style.display = 'block';
+      dataStatus.innerHTML = 'Could not load data files (<code>data/*.json</code>). This page must be served over HTTP(S) — opening <code>index.html</code> directly from disk (<code>file://</code>) blocks these requests. Run a local server (e.g. <code>python3 -m http.server</code>) or view it via GitHub Pages. Error: ' + (err && err.message ? err.message : err);
+    }
+  }
+}
+
+init();
+</script>
+</body>
+</html>
