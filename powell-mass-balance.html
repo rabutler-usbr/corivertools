@@ -205,68 +205,43 @@
   footer.methodology a { color: hsl(var(--accent)); text-decoration: none; }
   footer.methodology a:hover { text-decoration: underline; }
   
-  .toolbar {
-  background: #12324a;
-  border-bottom: 3px solid #1c5a7a;
-}
-
-.toolbar-inner {
-  width: min(1100px, calc(100% - 32px));
-  margin: 0 auto;
-  display: flex;
-  align-items: stretch;
-  flex-wrap: wrap;
-}
-
-.toolbar a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 52px;
-  padding: 0 16px;
-  color: #fff;
-  text-decoration: none;
-  font-weight: 650;
-}
-
-.toolbar a:hover { background: rgba(255, 255, 255, 0.13); }
-
-.toolbar a[aria-current="page"] {
-  background: #e9f2f7;
-  color: #12324a;
-}
-
-.toolbar a:focus-visible {
-  outline: 3px solid #f3b43f;
-  outline-offset: -3px;
-}
-
-@media (max-width: 520px) {
-  .toolbar-inner { width: 100%; }
-  .toolbar a {
-    flex: 1 1 auto;
-    justify-content: center;
-    padding: 0 10px;
-    font-size: 0.9rem;
+  .site-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 20px;
   }
-}
+
+  .site-nav a {
+    border: 1px solid hsl(var(--border));
+    border-radius: 20px;
+    padding: 6px 13px;
+    background: hsl(var(--surface-2));
+    color: hsl(var(--text-muted));
+    font-size: 0.78rem;
+    text-decoration: none;
+  }
+
+  .site-nav a:hover {
+    border-color: hsl(var(--accent));
+    color: hsl(var(--accent));
+  }
+
+  .site-nav a[aria-current="page"] {
+    border-color: hsl(var(--accent));
+    background: hsl(var(--accent-soft));
+    color: hsl(var(--accent));
+    font-weight: 700;
+  }
+
+  .site-nav a:focus-visible {
+    outline: 2px solid hsl(var(--accent));
+    outline-offset: 2px;
+  }
   
 </style>
 </head>
 <body>
-
-<!--
-  Paste this navigation block immediately after the opening <body> tag in
-  powell-mass-balance.html. Paste the accompanying CSS into that page's
-  existing <style> block.
--->
-<nav class="toolbar" aria-label="Primary navigation">
-  <div class="toolbar-inner">
-    <a href="index.html">Home</a>
-    <a href="powell-mass-balance.html" aria-current="page">Powell Mass Balance</a>
-    <a href="mead-mass-balance.html">Mead Mass Balance</a>
-    <a href="nf-unreg.html">NF &hArr; Unreg</a>
-  </div>
-</nav>
 
 <div class="wrap">
 
@@ -284,6 +259,15 @@
     </div>
     <button id="darkToggle" aria-label="Toggle dark mode" title="Toggle dark mode"></button>
   </header>
+  
+   <nav class="site-nav" aria-label="Primary navigation">
+      <a href="index.html">Home</a>
+      <a href="powell-mass-balance.html" aria-current="page">Powell Mass Balance</a>
+      <a href="mead-mass-balance.html">Mead Mass Balance</a>
+      <a href="nf-unreg.html">NF &hArr; Unreg</a>
+    </nav>
+
+    <div id="dataStatus" class="placeholder-note" style="display:none; margin-bottom:20px"></div>
 
   <div id="dataStatus" class="placeholder-note" style="display:none; margin-bottom: 20px;"></div>
 
