@@ -27,7 +27,8 @@ repo_root <- if (!is.na(script_path)) normalizePath(file.path(dirname(script_pat
 mrids_path <- get_arg("--mrids", file.path(repo_root, "data", "mrids.csv"))
 output_path <- get_arg("--output", file.path(repo_root, "data", "historical_inflow.json"))
 
-if (!requireNamespace("rhdb", quietly = TRUE)) stop("Package rhdb is required. Install it with remotes::install_github('BoulderCodeHub/rhdb').", call. = FALSE)
+if (!requireNamespace("rhdb", quietly = TRUE)) 
+  stop("Package rhdb is required. Install it with remotes::install_github('BoulderCodeHub/rhdb').", call. = FALSE)
 if (!requireNamespace("jsonlite", quietly = TRUE)) stop("Package jsonlite is required.", call. = FALSE)
 if (!file.exists(mrids_path)) stop(sprintf("MRID file not found: %s", mrids_path), call. = FALSE)
 if (!file.exists(output_path)) stop(sprintf("Historical inflow JSON not found: %s", output_path), call. = FALSE)
