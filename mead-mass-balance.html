@@ -235,7 +235,7 @@
         </svg>
         <div>
           <h1>Mead Mass Balance</h1>
-          <p>Water-year storage estimator</p>
+          <p>Calendar-year storage estimator</p>
         </div>
       </div>
       <button id="darkToggle" type="button" aria-label="Toggle dark mode" title="Toggle dark mode"></button>
@@ -249,23 +249,23 @@
     </nav>
 
     <section class="card">
-      <h2>Water-Year Mass Balance</h2>
+      <h2>CY Mass Balance</h2>
       <p class="sub">Solve for starting storage, derived inflow, derived outflow, or ending storage. All volumes are live storage and annual volumes.</p>
       <div class="equation">End Storage = Start Storage + Powell Release + Gains Above Mead − Evaporation − (9.0 MAF − Shortage + Losses + Losses Below Mead)</div>
 
       <div class="solvefor" id="solveForGroup">
         <label><input type="radio" name="solvefor" value="start"><span>Solve for Starting Storage</span></label>
-        <label><input type="radio" name="solvefor" value="inflow"><span>Solve for WY Inflow</span></label>
-        <label><input type="radio" name="solvefor" value="outflow"><span>Solve for WY Outflow</span></label>
+        <label><input type="radio" name="solvefor" value="inflow"><span>Solve for CY Inflow</span></label>
+        <label><input type="radio" name="solvefor" value="outflow"><span>Solve for CY Outflow</span></label>
         <label><input type="radio" name="solvefor" value="end" checked><span>Solve for Ending Storage</span></label>
       </div>
 
       <div class="grid4">
         <div class="field" id="field-start">
-          <div class="field-title"><span class="name">Starting Storage (Oct 1)</span><span class="badge" style="display:none">Computed</span></div>
+          <div class="field-title"><span class="name">Starting Storage (Jan 1)</span><span class="badge" style="display:none">Computed</span></div>
           <div class="single-field">
             <div class="input-unit">
-              <label for="startStorage">Live Storage</label>
+              <label for="startStorage">Live Storage (AF)</label>
               <input type="number" id="startStorage" step="1" value="8000000">
             </div>
           </div>
@@ -273,14 +273,14 @@
         </div>
 
         <div class="field" id="field-inflow">
-          <div class="field-title"><span class="name">WY Inflow</span><span class="badge" style="display:none">Computed</span></div>
+          <div class="field-title"><span class="name">CY Inflow</span><span class="badge" style="display:none">Computed</span></div>
           <div class="dual-input">
             <div class="input-unit">
-              <label for="powellRelease">Powell Release</label>
+              <label for="powellRelease">Powell Release (MAF)</label>
               <input type="number" id="powellRelease" step="0.01" value="7.00">
             </div>
             <div class="input-unit">
-              <label for="gainsAbove">Gains Above Mead</label>
+              <label for="gainsAbove">Gains Above Mead (KAF)</label>
               <input type="number" id="gainsAbove" step="1" value="655">
             </div>
           </div>
@@ -288,14 +288,14 @@
         </div>
 
         <div class="field" id="field-outflow">
-          <div class="field-title"><span class="name">WY Outflow</span><span class="badge" style="display:none">Computed</span></div>
+          <div class="field-title"><span class="name">CY Outflow</span><span class="badge" style="display:none">Computed</span></div>
           <div class="dual-input">
             <div class="input-unit">
-              <label for="shortage">Shortage</label>
+              <label for="shortage">Shortage (MAF)</label>
               <input type="number" id="shortage" step="0.01" value="1.50">
             </div>
             <div class="input-unit">
-              <label for="gainsBelow">Losses Below Mead</label>
+              <label for="gainsBelow">Losses Below Mead (KAF)</label>
               <input type="number" id="gainsBelow" step="1" value="189">
             </div>
           </div>
@@ -303,10 +303,10 @@
         </div>
 
         <div class="field" id="field-end">
-          <div class="field-title"><span class="name">Ending Storage (Sep 30)</span><span class="badge" style="display:none">Computed</span></div>
+          <div class="field-title"><span class="name">Ending Storage (Dec 31)</span><span class="badge" style="display:none">Computed</span></div>
           <div class="single-field">
             <div class="input-unit">
-              <label for="endStorage">Live Storage</label>
+              <label for="endStorage">Live Storage (AF)</label>
               <input type="number" id="endStorage" step="1" disabled>
             </div>
           </div>
@@ -315,16 +315,16 @@
       </div>
 
       <div class="detail-row">
-        <span class="name">WY Evaporation</span>
+        <span class="name">CY Evaporation</span>
         <input type="number" id="evapKaf" step="1" value="500" aria-label="Water-year evaporation in thousand acre-feet">
-        <span class="unit">kAF/yr</span>
-        <span class="note">Default: 500 kAF per year. Edit for the scenario being evaluated.</span>
+        <span class="unit">KAF/yr</span>
+        <span class="note">Default: 500 KAF per year. Edit for the scenario being evaluated.</span>
       </div>
 
       <div class="detail-row">
         <span class="name">System Losses</span>
-        <span class="unit"><b id="lossesTotal">—</b> kAF/yr</span>
-        <span class="note">Fixed components: 172 + 139 + 134 + 32 kAF = 477 kAF/yr. Losses below Mead are entered separately.</span>
+        <span class="unit"><b id="lossesTotal">—</b> KAF/yr</span>
+        <span class="note">Fixed components: 172 + 139 + 134 + 32 KAF = 477 KAF/yr. Losses below Mead are entered separately.</span>
 
       </div>
 
@@ -335,9 +335,9 @@
         </div>
         <div class="stat-grid">
           <div class="stat"><div class="k">Storage Change</div><div class="v" id="statDeltaStorage">—</div></div>
-          <div class="stat"><div class="k">WY Inflow</div><div class="v" id="statInflow">—</div></div>
-          <div class="stat"><div class="k">WY Outflow</div><div class="v" id="statOutflow">—</div></div>
-          <div class="stat"><div class="k">WY Evaporation</div><div class="v" id="statEvaporation">—</div></div>
+          <div class="stat"><div class="k">CY Inflow</div><div class="v" id="statInflow">—</div></div>
+          <div class="stat"><div class="k">CY Outflow</div><div class="v" id="statOutflow">—</div></div>
+          <div class="stat"><div class="k">CY Evaporation</div><div class="v" id="statEvaporation">—</div></div>
         </div>
         <div class="flags" id="flagsRow"></div>
       </div>
@@ -347,9 +347,9 @@
       <h2>Methodology &amp; assumptions</h2>
       <ul>
         <li>This is a single water-year mass balance: ending storage equals starting storage plus inflow minus outflow and evaporation.</li>
-        <li>Inflow is calculated as Powell release plus gains above Lake Mead. Defaults are 7.00 MAF and 655 kAF, respectively.</li>
+        <li>Inflow is calculated as Powell release plus gains above Lake Mead. Defaults are 7.00 MAF and 655 KAF, respectively.</li>
         <li>Outflow is calculated as 9.00 MAF total Lower Basin plus Mexico demand, minus shortage, plus fixed losses, plus losses below Mead.</li>
-        <li>Fixed losses total 477 kAF/yr: 172 + 139 + 134 + 32 kAF. The default gains below Mead value is 189 kAF/yr.</li>
+        <li>Fixed losses total 477 KAF/yr: 172 + 139 + 134 + 32 KAF. The default gains below Mead value is 189 KAF/yr.</li>
         <li>Values are planning inputs and do not represent an official operating forecast.</li>
       </ul>
     </footer>
