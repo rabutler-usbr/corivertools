@@ -2,7 +2,7 @@
   "unit": "acre-feet",
   "last_updated": "2026-08-21",
   "note": "Water-year (Oct 1 - Sep 30) unregulated inflow into Lake Powell. The current water year's value is typically a projection that changes month to month until the WY closes out on Sep 30 -- update it as new forecasts come in (see scripts/update_inflow.py and .github/workflows/update-inflow.yml for an automatable path).",
-  "source": "HDB API: server=uc, sdi=1856, time_step=m; observed 2023-10 through 2026-07 plus MRID 3326 from 2026-08 through 2026-09.",
+  "source": "HDB API: server=uc, sdi=1856, time_step=m; observed 2023-10 through 2026-07 plus MRID 3329 from 2026-08 through 2026-09.",
   "years": {
     "2000": 7774000,
     "2001": 6856000,
